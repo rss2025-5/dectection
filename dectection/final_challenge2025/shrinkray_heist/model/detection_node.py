@@ -28,7 +28,13 @@ class DetectorNode(Node):
         original_image = results["original_image"]
 
         out = self.detector.draw_box(original_image, predictions, draw_all=True)
-        self.publisher.publish(out)
+
+        # Convert OpenCV image back to ROS Image message
+        out_msg = self.bridge.cv2_to_imgmsg(out, encoding="bgr8")
+        out_msg.header = img_msg.header  # Optionally preserve the timestamp and frame_id
+
+        # Publish the processed image
+        self.publisher.publish(out_msg)
 
 def main(args=None):
     rclpy.init(args=args)
