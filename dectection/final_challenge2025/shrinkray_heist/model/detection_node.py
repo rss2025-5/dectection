@@ -10,7 +10,7 @@ class DetectorNode(Node):
     def __init__(self):
         super().__init__("detector")
         self.detector = Detector()
-        self.publisher = self.create_publisher(Image, "/prediced/image")
+        self.publisher = self.create_publisher(Image, "/predicted/image")
         self.subscriber = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.callback, 1)
         self.bridge = CvBridge()
 
@@ -28,7 +28,7 @@ class DetectorNode(Node):
         original_image = results["original_image"]
 
         out = self.detector.draw_box(original_image, predictions, draw_all=True)
-        self.publisher.publush(out)
+        self.publisher.publish(out)
 
 def main(args=None):
     rclpy.init(args=args)
