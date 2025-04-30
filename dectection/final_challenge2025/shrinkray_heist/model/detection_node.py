@@ -10,7 +10,7 @@ class DetectorNode(Node):
     def __init__(self):
         super().__init__("detector")
         self.detector = Detector()
-        self.publisher = self.self.create_publisher(Image, "/prediced/image")
+        self.publisher = self.create_publisher(Image, "/prediced/image")
         self.subscriber = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.callback, 1)
         self.bridge = CvBridge()
 
