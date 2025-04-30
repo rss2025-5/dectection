@@ -6,6 +6,8 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from .detector import Detector
 
+import numpy as np
+
 class DetectorNode(Node):
     def __init__(self):
         super().__init__("detector")
@@ -28,6 +30,8 @@ class DetectorNode(Node):
         original_image = results["original_image"]
 
         out = self.detector.draw_box(original_image, predictions, draw_all=True)
+
+        out = np.array(out)
 
         # Convert OpenCV image back to ROS Image message
         out_msg = self.bridge.cv2_to_imgmsg(out, encoding="bgr8")
