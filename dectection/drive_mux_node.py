@@ -28,10 +28,12 @@ class DriveMux(Node):
 
     def follower_cb(self, msg):
         if self.controller_mode == "FOLLOWING":
+            self.get_logger().info("NAVIGATING")
             self.drive_pub.publish(msg)
 
     def wall_cb(self, msg):
         if self.controller_mode == "AVOIDING":
+            self.get_logger().info("WALL FOLLOWING")
             self.drive_pub.publish(msg)
 
 def main(args=None):
