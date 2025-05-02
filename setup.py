@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'detection = dectection.final_challenge2025.shrinkray_heist.model.detection_node:main'
-            'drive = dectection.drive_mux_node:main'
+            'detection = dectection.final_challenge2025.shrinkray_heist.model.detection_node:main',
+            'drive = dectection.drive_mux_node:main',
             'state = dectection.state_machine_node:main'
 
         ],
