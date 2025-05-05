@@ -6,7 +6,7 @@ import cv2
 
 from sensor_msgs.msg import Image
 from .detector import Detector
-
+from std_msgs.msg import Bool
 import numpy as np
 
 class DetectorNode(Node):

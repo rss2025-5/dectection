@@ -25,12 +25,12 @@ class StateMachine(Node):
         super().__init__('state_machine')
 
         # Publisher to send goals to planner
-        self.safety_stop = self.create_publisher(PoseStamped, '/vesc/low_level/input/safety', 10)
+        self.safety_stop = self.create_publisher(AckermannDriveStamped, '/vesc/low_level/input/safety', 10)
         self.ready_to_save = self.create_publisher(Bool, '/ready_save', 10)
 
         # Subscriber to receive odometry
         self.odom_sub = self.create_subscription(Odometry, '/pf/pose/odom', self.odom_callback, 10)
-
+        self.init_sub = self.create_subscription(PoseStamped, '/initialpose', self.init_cb, 1)
         # Subscriber to clicked points (reuse goal_pose topic as clicked input)
         self.clicked_sub = self.create_subscription(PoseStamped, '/goal_pose', self.clicked_callback, 10)
 
@@ -44,23 +44,35 @@ class StateMachine(Node):
 
         self.timer = self.create_timer(0.1, self.state_machine_step)  # 10Hz
 
+    def init_cb(self, msg):
+        self.start_location = msg
+
     def clicked_callback(self, msg):
         self.state = HeistState.NAVIGATING_TO_1
+        if self.location1 is None:
+            self.location1 = msg
+            return
+        if self.location2 is None:
+            self.location2 = msg
+            return 
 
     def odom_callback(self, msg):
         self.current_pos = (msg.pose.pose.position.x, msg.pose.pose.position.y)
 
     def state_machine_step(self):
         if self.current_pos is None:
+            self.get_logger().info('No current pose')
             return  # no odometry yet
 
         if self.state == HeistState.NAVIGATING_TO_1:
+            self.get_logger().info('nav 1')
             if self.is_close(self.current_pos, self.location1.pose.position):
                 self.get_logger().info("Arrived at location 1. Pickup starting")
                 self.stop_robot()
                 self.state = HeistState.NAVIGATING_TO_2
 
         elif self.state == HeistState.NAVIGATING_TO_2:
+            self.get_logger().info('nav 2')
             if self.is_close(self.current_pos, self.location2.pose.position):
                 self.get_logger().info("Arrived at location 2. Pickup starting")
                 self.stop_robot()
@@ -78,7 +90,7 @@ class StateMachine(Node):
 
     def stop_robot(self):
         # stop car for 5 seconds and save image of banana
-        start_time = time.now()
+        start_time = time.time()
         ready_msg = Bool()
         ready_msg.data = True
         self.ready_to_save.publish(ready_msg)
@@ -88,9 +100,13 @@ class StateMachine(Node):
             self.safety_stop.publish(drive_msg)
 
     def is_close(self, current, target, threshold=0.4):
+        self.get_logger().info('checking')
         dx = current[0] - target.x
         dy = current[1] - target.y
-        return math.hypot(dx, dy) < threshold
+
+        within_thres = math.hypot(dx, dy) < threshold
+        self.get_logger().info(f'within_tres:{within_thres}')
+        return within_thres
 
     # def create_pose_stamped(self, x, y):
     #     ps = PoseStamped()
