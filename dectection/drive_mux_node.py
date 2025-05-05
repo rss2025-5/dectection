@@ -19,11 +19,14 @@ class DriveMux(Node):
         self.obstacle_sub = self.create_subscription(Bool, "/obstacle_detected", self.obstacle_cb, 10)
 
     def obstacle_cb(self, msg):
+        # switch to avoiding mode
         if msg.data and self.controller_mode != "AVOIDING":
-            self.get_logger().info("Obstacle detected → switching to WALL FOLLOWER")
+            self.get_logger().info("Obstacle detected, switching to WALL FOLLOWER")
             self.controller_mode = "AVOIDING"
+
+        # swtich to following mode
         elif not msg.data and self.controller_mode != "FOLLOWING":
-            self.get_logger().info("Obstacle cleared → switching to TRAJECTORY FOLLOWER")
+            self.get_logger().info("Obstacle cleared, switching to TRAJECTORY FOLLOWER")
             self.controller_mode = "FOLLOWING"
 
     def follower_cb(self, msg):

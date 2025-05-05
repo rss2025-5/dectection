@@ -17,14 +17,14 @@ class Detector:
         # local import
         from ultralytics import YOLO
         cls = YOLO
-        
+
         self.threshold = threshold
         self.yolo_dir = yolo_dir
         if from_tensor_rt:
             self.model = cls(f"{self.yolo_dir}/yolo11n.engine", task="detect")
         else:
             self.model = cls(f"{self.yolo_dir}/yolo11n.pt", task="detect")
-    
+
     def to(self, device):
         self.model.to(device)
 
@@ -34,12 +34,12 @@ class Detector:
             Union[str, pathlib.Path, int, PIL.Image.Image, list, tuple, numpy.ndarray, torch.Tensor]
 
             Batch not supported.
-            
+
         Runs detection on a single image and returns a list of
         ((xmin, ymin, xmax, ymax), class_label) for each detection
         above the given confidence threshold.
         """
-        results = list(self.model(img, verbose=not silent))[0]
+        results = list(self.model(img, verbose=not silent, conf=self.threshold))[0]
         boxes = results.boxes
 
         predictions = []
@@ -51,13 +51,13 @@ class Detector:
                 # Map class index to class label using model/ results
                 label = results.names[int(cls_idx.item())]
                 predictions.append(((x1, y1, x2, y2), label))
-        
+
         #convert original image to rgb
         original_image = results.orig_img
         cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB, original_image)
-        
+
         return dict(predictions=predictions, original_image=original_image)
-    
+
     def set_threshold(self, threshold):
         """
         Sets the confidence threshold for predictions.
@@ -113,36 +113,36 @@ class Detector:
             draw.text((x1, y1 - text_offset), label, fill=color, font=font)
 
         return img
-    
+
     def id2name(self, i):
         """
         Converts a class index to a class name.
         """
         return self.model.names[i]
-    
+
     @property
     def classes(self):
         return self.model.names
-        
-    
+
+
 def demo():
     import os
     model = Detector()
     model.set_threshold(0.5)
-    
-    img_path = f"{os.path.dirname(__file__)}/../../media/minion.png" 
-        
+
+    img_path = f"{os.path.dirname(__file__)}/../../media/minion.png"
+
     img = Image.open(img_path)
     results = model.predict(img)
-    
+
     predictions = results["predictions"]
     original_image = results["original_image"]
-        
+
     out = model.draw_box(original_image, predictions, draw_all=True)
-    
+
     save_path = f"{os.path.dirname(__file__)}/demo_output.png"
     out.save(save_path)
     print(f"Saved demo to {save_path}!")
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
     demo()
