@@ -54,13 +54,14 @@ class StateMachine(Node):
         self.start_location = end_pose
 
     def clicked_callback(self, msg):
-        self.state = HeistState.NAVIGATING_TO_1
-        if self.location1 is None:
-            self.location1 = msg
-            return
-        if self.location2 is None:
-            self.location2 = msg
-            return
+        if self.state != HeistState.ESCAPING:
+            self.state = HeistState.NAVIGATING_TO_1
+            if self.location1 is None:
+                self.location1 = msg
+                return
+            if self.location2 is None:
+                self.location2 = msg
+                return
 
     def odom_callback(self, msg):
         self.current_pos = (msg.pose.pose.position.x, msg.pose.pose.position.y)
