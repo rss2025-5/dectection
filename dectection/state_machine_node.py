@@ -27,11 +27,11 @@ class StateMachine(Node):
         # Publisher to send goals to planner
         self.safety_stop = self.create_publisher(AckermannDriveStamped, '/vesc/low_level/input/safety', 10)
         self.ready_to_save = self.create_publisher(Bool, '/ready_save', 10)
-        self.end_pub = self.create_publisher(PoseStamped, '/goal_pose', 1)
+        self.end_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
 
         # Subscriber to receive odometry
         self.odom_sub = self.create_subscription(Odometry, '/pf/pose/odom', self.odom_callback, 10)
-        self.init_sub = self.create_subscription(PoseStamped, '/initialpose', self.init_cb, 1)
+        self.init_sub = self.create_subscription(PoseStamped, '/initialpose', self.init_cb, 10)
         # Subscriber to clicked points (reuse goal_pose topic as clicked input)
         self.clicked_sub = self.create_subscription(PoseStamped, '/goal_pose', self.clicked_callback, 10)
 
