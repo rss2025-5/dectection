@@ -31,7 +31,7 @@ class StateMachine(Node):
 
         # Subscriber to receive odometry
         self.odom_sub = self.create_subscription(Odometry, '/pf/pose/odom', self.odom_callback, 10)
-        self.init_sub = self.create_subscription(PoseStamped, '/initialpose', self.init_cb, 10)
+        self.init_sub = self.create_subscription(PoseWithCovarianceStamped, '/initialpose', self.init_cb, 10)
         # Subscriber to clicked points (reuse goal_pose topic as clicked input)
         self.clicked_sub = self.create_subscription(PoseStamped, '/goal_pose', self.clicked_callback, 10)
 
@@ -48,7 +48,10 @@ class StateMachine(Node):
         self.timer = self.create_timer(0.1, self.state_machine_step)  # 10Hz
 
     def init_cb(self, msg):
-        self.start_location = msg
+        self.get_logger().info('START AND END POINT SETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT')
+        end_pose = PoseStamped()
+        end_pose.pose = msg.pose.pose
+        self.start_location = end_pose
 
     def clicked_callback(self, msg):
         self.state = HeistState.NAVIGATING_TO_1
@@ -138,12 +141,10 @@ class StateMachine(Node):
             self.safety_stop.publish(drive_msg)
 
     def is_close(self, current, target, threshold=0.4):
-        self.get_logger().info('checking')
         dx = current[0] - target.x
         dy = current[1] - target.y
 
         within_thres = math.hypot(dx, dy) < threshold
-        self.get_logger().info(f'within_tres:{within_thres}')
         return within_thres
 
     # def create_pose_stamped(self, x, y):
