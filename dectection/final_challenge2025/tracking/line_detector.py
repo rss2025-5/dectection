@@ -19,9 +19,9 @@ class LanePurePursuit(Node):
         self.declare_parameters(namespace='',
             parameters=[
                 ('camera_topic', '/zed/zed_node/rgb/image_rect_color'),
-                ('max_speed', 2.0),
-                ('lookahead_distance', 0.5), # 0.8 og
-                ('hough_threshold', 50),
+                ('max_speed', 4.5),
+                ('lookahead_distance', 0.51), # 0.8 og
+                ('hough_threshold', 20),
                 ('min_line_length', 50),
                 ('max_line_gap', 30),
                 ('lane_width_tolerance', 0.2)  # 30% tolerance for lane width variation
@@ -36,7 +36,7 @@ class LanePurePursuit(Node):
         self.lane_width_tolerance = self.get_parameter('lane_width_tolerance').get_parameter_value().double_value
 
         self.wheel_base = 0.33
-        self.max_steering_angle = 0.261799 # 15 degrees
+        self.max_steering_angle = 3.1415/10.0 #10 degrees 
 
         # Initialize visualization variables
         self.target_point = None
@@ -59,7 +59,7 @@ class LanePurePursuit(Node):
             self.camera_topic,
             self.image_callback,
             10)
-        self.cmd_pub = self.create_publisher(AckermannDriveStamped, '/vesc/low_level/input/navigation', 10)
+        self.cmd_pub = self.create_publisher(AckermannDriveStamped, '/vesc/high_level/input/nav_0', 10)
         self.img_pub = self.create_publisher(Image, '/pred_lines', 10)
 
 
@@ -213,7 +213,7 @@ class LanePurePursuit(Node):
                 left_line = best_pair[1][3]
                 right_line = best_pair[2][3]
 
-                self.get_logger().info(f"Selected lane pair with width: {best_pair[2][0] - best_pair[1][0]:.1f} pixels")
+                #self.get_logger().info(f"Selected lane pair with width: {best_pair[2][0] - best_pair[1][0]:.1f} pixels")
 
                 # Update initial fits if needed
                 if not self.set_init:
@@ -232,7 +232,7 @@ class LanePurePursuit(Node):
                     x_curr = (horizon_y - b_curr) / m_curr if m_curr != 0 else 0
 
                     if abs(x_curr - x_prev) > max_x_jump:
-                        self.get_logger().warn("Left line jumped too far, reverting to previous")
+                        #self.get_logger().warn("Left line jumped too far, reverting to previous")
                         left_line = self.prev_left_fit
 
                 # Reject right line if it jumps too much from previous
@@ -244,7 +244,7 @@ class LanePurePursuit(Node):
                     x_curr = (horizon_y - b_curr) / m_curr if m_curr != 0 else img_shape[1]
 
                     if abs(x_curr - x_prev) > max_x_jump:
-                        self.get_logger().warn("Right line jumped too far, reverting to previous")
+                        #self.get_logger().warn("Right line jumped too far, reverting to previous")
                         right_line = self.prev_right_fit
 
 
@@ -252,7 +252,7 @@ class LanePurePursuit(Node):
 
         # If we couldn't find a valid pair or don't have expected width yet, fall back to individual selection
         if not left_line or not right_line:
-            self.get_logger().info("Falling back to individual line selection")
+            #self.get_logger().info("Falling back to individual line selection")
 
             # Select left line (closest to center at horizon)
             if left_candidates:
@@ -333,10 +333,10 @@ class LanePurePursuit(Node):
 
         if m_left is None:
             m_left = m_right
-            b_left = b_right - 100.0
+            b_left = b_right - 120.0
         if m_right is None:
             m_right = m_left
-            b_right = b_left + 100.0
+            b_right = b_left + 120.0
 
         # Store line equations for visualization
         self.left_fit = (m_left, b_left)
@@ -359,7 +359,7 @@ class LanePurePursuit(Node):
 
         # Pure Pursuit calculations
         L = self.lookahead_distance
-        yt = (img_width/2 - target_x) * 0.001  # Convert pixels to meters
+        yt = (img_width/2 - target_x)*0.0005
         curvature = 2 * yt / (L ** 2)
         steering_angle = np.arctan(self.wheel_base * curvature)
         steering_angle = np.clip(steering_angle,
@@ -367,8 +367,8 @@ class LanePurePursuit(Node):
                                 self.max_steering_angle)
 
         # Calculate speed based on steering angle
-        speed = self.max_speed * (1 - 0.4 * abs(np.sin(steering_angle)))
-
+        speed = self.max_speed * (1 - abs(np.sin(steering_angle)))
+        self.get_logger().info(f"speed: {speed}")
         # Publish command
         cmd = AckermannDriveStamped()
         cmd.drive.steering_angle = steering_angle

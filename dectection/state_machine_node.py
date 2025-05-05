@@ -26,7 +26,7 @@ class StateMachine(Node):
         self.goal_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
 
         # Subscriber to receive odometry
-        self.odom_sub = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
+        self.odom_sub = self.create_subscription(Odometry, '/pf/pose/odom', self.odom_callback, 10)
 
         # Subscriber to clicked points (reuse goal_pose topic as clicked input)
         self.clicked_sub = self.create_subscription(PoseStamped, '/goal_pose', self.clicked_callback, 10)
