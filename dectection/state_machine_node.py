@@ -27,6 +27,7 @@ class StateMachine(Node):
         # Publisher to send goals to planner
         self.safety_stop = self.create_publisher(AckermannDriveStamped, '/vesc/low_level/input/safety', 10)
         self.ready_to_save = self.create_publisher(Bool, '/ready_save', 10)
+        self.end_pub = self.create_publisher(PoseStamped, '/goal_pose', 1)
 
         # Subscriber to receive odometry
         self.odom_sub = self.create_subscription(Odometry, '/pf/pose/odom', self.odom_callback, 10)
@@ -38,10 +39,12 @@ class StateMachine(Node):
         self.location1 = None
         self.location2 = None
         self.start_location = None
-        self.got_goals = 0
+
 
         self.current_pos = None
-
+        self.rotating = True
+        self.turn_stage = 1
+        self.rotate_start_time = time.time()
         self.timer = self.create_timer(0.1, self.state_machine_step)  # 10Hz
 
     def init_cb(self, msg):
@@ -54,7 +57,7 @@ class StateMachine(Node):
             return
         if self.location2 is None:
             self.location2 = msg
-            return 
+            return
 
     def odom_callback(self, msg):
         self.current_pos = (msg.pose.pose.position.x, msg.pose.pose.position.y)
@@ -78,10 +81,45 @@ class StateMachine(Node):
                 self.stop_robot()
                 self.state = HeistState.ESCAPING
 
+                # make a U turn for the end
+                self.rotate_start_time = time.time()
+                while self.rotating:
+                    drive_msg = AckermannDriveStamped()
+
+                    if self.turn_stage == 1:
+                        drive_msg.drive.speed = 0.5  # forward
+                        drive_msg.drive.steering_angle = 0.34  # left turn (adjustable)
+                        self.safety_stop.publish(drive_msg)
+
+                        if time.time() - self.rotate_start_time >= 2:  # forward turn duration
+                            self.rotate_start_time = time.time()
+                            self.turn_stage = 2
+
+                    elif self.turn_stage == 2:
+                        drive_msg.drive.speed = -0.5  # reverse
+                        drive_msg.drive.steering_angle = -0.34  # right turn
+                        self.safety_stop.publish(drive_msg)
+
+                        if time.time() - self.rotate_start_time >= 1.5:  # reverse duration
+                            self.rotate_start_time = time.time()
+                            self.turn_stage = 3
+
+                    elif self.turn_stage == 3:
+                        drive_msg.drive.speed = 0.5  # forward again
+                        drive_msg.drive.steering_angle = 0.34  # left turn
+                        self.safety_stop.publish(drive_msg)
+
+                        if time.time() - self.rotate_start_time >= 2:  # final forward duration
+                            self.rotating = False
+                            self.get_logger().info("3-point turn complete")
+                            self.end_pub.publish(self.start_location)
+                            # self.state = HeistState.ESCAPING
+
+                    # return  # don’t process other states while rotating
+
         elif self.state == HeistState.ESCAPING:
             if self.is_close(self.current_pos, self.start_location.pose.position):
                 self.get_logger().info("Escaped back to start! Heist complete.")
-                self.stop_robot()
                 self.state = HeistState.FINISHED
 
     # def publish_goal(self, pose_msg):
