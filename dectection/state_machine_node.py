@@ -129,7 +129,10 @@ class StateMachine(Node):
                             condition = Bool()
                             condition.data = True
                             self.gen_return.publish(condition)
-
+                            # buffer
+                            wait_start = time.time()
+                            while time.time() - wait_start <= 2:
+                                pass
                             # give planner a new initial pose with current pose
                             self.start_new.publish(self.current_pos_msg)
 
