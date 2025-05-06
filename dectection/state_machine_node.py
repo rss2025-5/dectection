@@ -109,7 +109,7 @@ class StateMachine(Node):
 
                     elif self.turn_stage == 2:
                         drive_msg.drive.speed = -0.5  # reverse
-                        drive_msg.drive.steering_angle = -0.34  # right turn
+                        drive_msg.drive.steering_angle = -0.50  # right turn
                         self.safety_stop.publish(drive_msg)
 
                         if time.time() - self.rotate_start_time >= 1.5:  # reverse duration
@@ -118,7 +118,7 @@ class StateMachine(Node):
 
                     elif self.turn_stage == 3:
                         drive_msg.drive.speed = 0.5  # forward again
-                        drive_msg.drive.steering_angle = 0.34  # left turn
+                        drive_msg.drive.steering_angle = 0.50  # left turn
                         self.safety_stop.publish(drive_msg)
 
                         if time.time() - self.rotate_start_time >= 2:  # final forward duration
