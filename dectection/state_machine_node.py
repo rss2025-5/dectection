@@ -134,19 +134,29 @@ class StateMachine(Node):
                             time.sleep(3)
 
                             #   NEWWWW
-                            q = self.current_pos_msg.pose.pose.orientation
-                            q.x = -q.x
-                            q.y = -q.y
-                            self.current_pos_msg.pose.pose.orientation.x = q.x
-                            self.current_pos_msg.pose.pose.orientation.x = q.y
+                            # Get current yaw
+                            current_yaw = self.get_yaw_from_quaternion(self.current_pos_msg.pose.pose.orientation)
 
+                            # Add 180 degrees (π radians) to flip the orientation
+                            new_yaw = current_yaw + math.pi
 
-                            time.sleep(3)
+                            # Normalize to [-π, π]
+                            while new_yaw > math.pi:
+                                new_yaw -= 2.0 * math.pi
+                            while new_yaw < -math.pi:
+                                new_yaw += 2.0 * math.pi
+
+                            # Create new quaternion
+                            q = self.convert_to_quaternion(new_yaw)
+
+                            # Set it in the message
+                            self.current_pos_msg.pose.pose.orientation.x = q['x']
+                            self.current_pos_msg.pose.pose.orientation.y = q['y']
+                            self.current_pos_msg.pose.pose.orientation.z = q['z']
+                            self.current_pos_msg.pose.pose.orientation.w = q['w']
 
                             # give planner a new initial pose with current pose
                             self.start_new.publish(self.current_pos_msg)
-
-                            time.sleep(3)
 
                             # give planner the end goal
                             self.end_pub.pulish(self.start_location)
@@ -159,9 +169,21 @@ class StateMachine(Node):
                 self.get_logger().info("Escaped back to start! Heist complete.")
                 self.state = HeistState.FINISHED
 
-    # def publish_goal(self, pose_msg):
-    #     self.goal_pub.publish(pose_msg)
-    #     self.get_logger().info(f"Published goal: ({pose_msg.pose.position.x}, {pose_msg.pose.position.y})")
+    def convert_to_quaternion(self, yaw):
+        """Convert a yaw angle to quaternion"""
+        return {
+            'x': 0.0,
+            'y': 0.0,
+            'z': math.sin(yaw/2.0),
+            'w': math.cos(yaw/2.0)
+        }
+
+    def get_yaw_from_quaternion(self, q):
+        """Extract yaw angle from quaternion"""
+        # Uses the same formula as in your PathPlan class
+        siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+        cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        return math.atan2(siny_cosp, cosy_cosp)
 
     def stop_robot(self):
         # stop car for 5 seconds and save image of banana
