@@ -28,6 +28,8 @@ class StateMachine(Node):
         self.safety_stop = self.create_publisher(AckermannDriveStamped, '/vesc/low_level/input/safety', 10)
         self.ready_to_save = self.create_publisher(Bool, '/ready_save', 10)
         self.end_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
+        self.gen_return = self.create_publisher(Bool, '/can_return', 10)
+        self.start_new = self.create_publisher(PoseWithCovarianceStamped, '/initialpose', 10)
 
         # Subscriber to receive odometry
         self.odom_sub = self.create_subscription(Odometry, '/pf/pose/odom', self.odom_callback, 10)
@@ -47,11 +49,14 @@ class StateMachine(Node):
         self.rotate_start_time = time.time()
         self.timer = self.create_timer(0.1, self.state_machine_step)  # 10Hz
 
+        self.current_pos_msg = None
+
     def init_cb(self, msg):
-        self.get_logger().info('START AND END POINT SETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT')
-        end_pose = PoseStamped()
-        end_pose.pose = msg.pose.pose
-        self.start_location = end_pose
+        if self.state != HeistState.ESCAPING:
+            self.get_logger().info('START AND END POINT SETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT')
+            end_pose = PoseStamped()
+            end_pose.pose = msg.pose.pose
+            self.start_location = end_pose
 
     def clicked_callback(self, msg):
         if self.state != HeistState.ESCAPING:
@@ -65,6 +70,7 @@ class StateMachine(Node):
 
     def odom_callback(self, msg):
         self.current_pos = (msg.pose.pose.position.x, msg.pose.pose.position.y)
+        self.current_pos_msg = msg.pose
 
     def state_machine_step(self):
         if self.current_pos is None:
@@ -116,6 +122,16 @@ class StateMachine(Node):
                         if time.time() - self.rotate_start_time >= 2:  # final forward duration
                             self.rotating = False
                             self.get_logger().info("3-point turn complete")
+                            # tell the planner to generate a new path
+                            # reset the planner
+                            condition = Bool()
+                            condition.data = True
+                            self.gen_return.publish(condition)
+
+                            # give planner a new initial pose with current pose
+                            self.start_new.publish(self.current_pos_msg)
+
+                            # give planner the end goal
                             self.end_pub.publish(self.start_location)
                             # self.state = HeistState.ESCAPING
 
