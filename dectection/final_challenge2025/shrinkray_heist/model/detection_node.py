@@ -50,10 +50,11 @@ class DetectorNode(Node):
         self.publisher.publish(out_msg)
 
     def save_image(self, ready_to_save):
-        self.banana_detected = any(label == "banana" for _, label in self.predictions)
-        if self.banana_detected and ready_to_save.data:
-            self.get_logger().info("Banana detected! Saving image.")
-            cv2.imwrite("detected_banana.png", self.detected_image)
+        if self.predictions:
+            self.banana_detected = any(label == "banana" for _, label in self.predictions)
+            if self.banana_detected and ready_to_save.data:
+                self.get_logger().info("Banana detected! Saving image.")
+                cv2.imwrite("detected_banana.png", self.detected_image)
 
 
 def main(args=None):
