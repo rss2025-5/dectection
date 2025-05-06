@@ -134,22 +134,12 @@ class StateMachine(Node):
                             time.sleep(3)
 
                             #   NEWWWW
+                            q = self.current_pos_msg.pose.pose.orientation
+                            q.x = -q.x
+                            q.y = -q.y
+                            self.current_pos_msg.pose.pose.orientation.x = q.x
+                            self.current_pos_msg.pose.pose.orientation.x = q.y
 
-                            if self.current_pos_msg:
-                                # Normalize quaternion if needed
-                                q = self.current_pos_msg.pose.pose.orientation
-                                norm = math.sqrt(q.x**2 + q.y**2 + q.z**2 + q.w**2)
-                                if norm > 0:
-                                    q.x /= norm
-                                    q.y /= norm
-                                    q.z /= norm
-                                    q.w /= norm
-                                else:
-                                    # If quaternion is invalid, set a default orientation
-                                    q.x = 0.0
-                                    q.y = 0.0
-                                    q.z = 0.0
-                                    q.w = 1.0
 
                             time.sleep(3)
 
