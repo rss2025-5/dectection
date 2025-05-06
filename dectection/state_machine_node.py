@@ -72,6 +72,7 @@ class StateMachine(Node):
         self.current_pos = (msg.pose.pose.position.x, msg.pose.pose.position.y)
         pos_msg = PoseWithCovarianceStamped()
         pos_msg.pose = msg.pose
+        pos_msg.header = msg.header
         self.current_pos_msg = pos_msg
 
     def state_machine_step(self):
