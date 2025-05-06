@@ -131,14 +131,35 @@ class StateMachine(Node):
                             condition.data = True
                             self.gen_return.publish(condition)
                             # buffer
-                            wait_start = time.time()
-                            while time.time() - wait_start <= 2:
-                                pass
+                            time.sleep(3)
+
+                            #   NEWWWW
+
+                            if self.current_pos_msg:
+                                # Normalize quaternion if needed
+                                q = self.current_pos_msg.pose.pose.orientation
+                                norm = math.sqrt(q.x**2 + q.y**2 + q.z**2 + q.w**2)
+                                if norm > 0:
+                                    q.x /= norm
+                                    q.y /= norm
+                                    q.z /= norm
+                                    q.w /= norm
+                                else:
+                                    # If quaternion is invalid, set a default orientation
+                                    q.x = 0.0
+                                    q.y = 0.0
+                                    q.z = 0.0
+                                    q.w = 1.0
+
+                            time.sleep(3)
+
                             # give planner a new initial pose with current pose
                             self.start_new.publish(self.current_pos_msg)
 
+                            time.sleep(3)
+
                             # give planner the end goal
-                            self.end_pub.publish(self.start_location)
+                            self.end_pub.pulish(self.start_location)
                             # self.state = HeistState.ESCAPING
 
                     # return  # don’t process other states while rotating
