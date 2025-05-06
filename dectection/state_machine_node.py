@@ -70,7 +70,9 @@ class StateMachine(Node):
 
     def odom_callback(self, msg):
         self.current_pos = (msg.pose.pose.position.x, msg.pose.pose.position.y)
-        self.current_pos_msg = msg.pose
+        pos_msg = PoseWithCovarianceStamped()
+        pos_msg.pose = msg.pose
+        self.current_pos_msg = pos_msg
 
     def state_machine_step(self):
         if self.current_pos is None:
