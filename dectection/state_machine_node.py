@@ -159,7 +159,7 @@ class StateMachine(Node):
                             self.start_new.publish(self.current_pos_msg)
 
                             # give planner the end goal
-                            self.end_pub.pulish(self.start_location)
+                            self.end_pub.publish(self.start_location)
                             # self.state = HeistState.ESCAPING
 
                     # return  # don’t process other states while rotating
