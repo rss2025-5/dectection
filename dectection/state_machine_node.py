@@ -61,13 +61,9 @@ class StateMachine(Node):
 
     def red_light(self, msg):
         self.get_logger().info(f'{msg.data}')
-        if msg.data:
-            self.stop_robot()
-            # drive_msg = AckermannDriveStamped()
-            # drive_msg.drive.speed = 0.0
-            # self.safety_stop.publish(drive_msg)
-            # self.get_logger().info("Waiting at red light")
-            # time.sleep(2)
+        # while red light detected, stop it for 2 secs
+        while msg.data:
+            self.stop_robot(True)
         else:
             return
 
@@ -94,14 +90,14 @@ class StateMachine(Node):
             return  # no odometry yet
 
         if self.state == HeistState.NAVIGATING_TO_1:
-    
+
             if self.is_close(self.current_pos, self.location1.pose.position):
                 self.get_logger().info("Arrived at location 1. Pickup starting")
                 self.stop_robot()
                 self.state = HeistState.NAVIGATING_TO_2
 
         elif self.state == HeistState.NAVIGATING_TO_2:
-        
+
             if self.is_close(self.current_pos, self.location2.pose.position):
                 self.get_logger().info("Arrived at location 2. Pickup starting")
                 self.stop_robot()
@@ -198,16 +194,24 @@ class StateMachine(Node):
         cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
         return math.atan2(siny_cosp, cosy_cosp)
 
-    def stop_robot(self):
-        # stop car for 5 seconds and save image of banana
-        start_time = time.time()
-        ready_msg = Bool()
-        ready_msg.data = True
-        self.ready_to_save.publish(ready_msg)
-        while time.time() - start_time <= 5:
-            drive_msg = AckermannDriveStamped()
-            drive_msg.drive.speed = 0.0
-            self.safety_stop.publish(drive_msg)
+    def stop_robot(self, traffic_light = False):
+        if not traffic_light:
+            # stop car for 5 seconds and save image of banana
+            start_time = time.time()
+            ready_msg = Bool()
+            ready_msg.data = True
+            self.ready_to_save.publish(ready_msg)
+            while time.time() - start_time <= 5:
+                drive_msg = AckermannDriveStamped()
+                drive_msg.drive.speed = 0.0
+                self.safety_stop.publish(drive_msg)
+        else:
+            start_time = time.time()
+            while time.time() - start_time <= 2:
+                drive_msg = AckermannDriveStamped()
+                drive_msg.drive.speed = 0.0
+                self.safety_stop.publish(drive_msg)
+
 
     def is_close(self, current, target, threshold=0.4):
         dx = current[0] - target.x
