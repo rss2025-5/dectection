@@ -10,6 +10,7 @@ from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
 from ackermann_msgs.msg import AckermannDriveStamped
 from std_msgs.msg import Bool
+from vs_msgs.msg import ConeLocationPixel
 
 class HeistState(Enum):
     WAITING_FOR_LOCATIONS = 0
@@ -30,7 +31,7 @@ class StateMachine(Node):
         self.end_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
         self.gen_return = self.create_publisher(Bool, '/can_return', 10)
         self.start_new = self.create_publisher(PoseWithCovarianceStamped, '/initialpose', 10)
-
+        self.red_sub = self.create_subscription(Bool, '/is_red', self.red_light, 10)
         # Subscriber to receive odometry
         self.odom_sub = self.create_subscription(Odometry, '/pf/pose/odom', self.odom_callback, 10)
         self.init_sub = self.create_subscription(PoseWithCovarianceStamped, '/initialpose', self.init_cb, 10)
@@ -58,6 +59,18 @@ class StateMachine(Node):
             end_pose.pose = msg.pose.pose
             self.start_location = end_pose
 
+    def red_light(self, msg):
+        self.get_logger().info(f'{msg.data}')
+        if msg.data:
+            self.stop_robot()
+            # drive_msg = AckermannDriveStamped()
+            # drive_msg.drive.speed = 0.0
+            # self.safety_stop.publish(drive_msg)
+            # self.get_logger().info("Waiting at red light")
+            # time.sleep(2)
+        else:
+            return
+
     def clicked_callback(self, msg):
         if self.state != HeistState.ESCAPING:
             self.state = HeistState.NAVIGATING_TO_1
@@ -81,14 +94,14 @@ class StateMachine(Node):
             return  # no odometry yet
 
         if self.state == HeistState.NAVIGATING_TO_1:
-            self.get_logger().info('nav 1')
+    
             if self.is_close(self.current_pos, self.location1.pose.position):
                 self.get_logger().info("Arrived at location 1. Pickup starting")
                 self.stop_robot()
                 self.state = HeistState.NAVIGATING_TO_2
 
         elif self.state == HeistState.NAVIGATING_TO_2:
-            self.get_logger().info('nav 2')
+        
             if self.is_close(self.current_pos, self.location2.pose.position):
                 self.get_logger().info("Arrived at location 2. Pickup starting")
                 self.stop_robot()

@@ -14,6 +14,7 @@ class DetectorNode(Node):
         super().__init__("detector")
         self.detector = Detector()
         self.publisher = self.create_publisher(Image, "/predicted/image", 10)
+        self.traffic = self.create_publisher(Image, "/traffic", 10)
         self.subscriber = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.callback, 1)
         self.subscriber = self.create_subscription(Bool, "/ready_save", self.save_image, 1)
         self.bridge = CvBridge()
@@ -24,6 +25,7 @@ class DetectorNode(Node):
         self.banana_detected = False
 
         self.predictions = None
+        self.image_count = 1
 
     def callback(self, img_msg):
         # Process image with CV Bridge
@@ -45,7 +47,8 @@ class DetectorNode(Node):
         out_msg = self.bridge.cv2_to_imgmsg(out, encoding="bgr8")
         out_msg.header = img_msg.header  # Optionally preserve the timestamp and frame_id
 
-
+        if any(label == "traffic light" for _, label in self.predictions):
+            self.traffic.publish(img_msg)
         # Publish the processed image
         self.publisher.publish(out_msg)
 
@@ -54,7 +57,8 @@ class DetectorNode(Node):
             self.banana_detected = any(label == "banana" for _, label in self.predictions)
             if self.banana_detected and ready_to_save.data:
                 self.get_logger().info("Banana detected! Saving image.")
-                cv2.imwrite("detected_banana.png", self.detected_image)
+                cv2.imwrite("detected_banana" + str(self.image_count)+ ".png", self.detected_image)
+                self.image_count+=1
 
 
 def main(args=None):
