@@ -62,7 +62,7 @@ class StateMachine(Node):
     def red_light(self, msg):
         self.get_logger().info(f'{msg.data}')
         # while red light detected, stop it for 2 secs
-        while msg.data:
+        if msg.data:
             self.stop_robot(True)
         else:
             return
