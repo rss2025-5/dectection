@@ -17,7 +17,7 @@ class DetectorNode(Node):
         self.traffic = self.create_publisher(Image, "/traffic", 10)
         self.subscriber = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.callback, 1)
         self.subscriber = self.create_subscription(Bool, "/ready_save", self.save_image, 1)
-        self.sub = self.create_subscription(Int32, '/state_count', self.state_count_cb)
+        self.sub = self.create_subscription(Int32, '/state_count', self.state_count_cb, 1)
         self.bridge = CvBridge()
 
         self.get_logger().info("Detector Initialized")
