@@ -19,9 +19,9 @@ class LanePurePursuit(Node):
         self.declare_parameters(namespace='',
             parameters=[
                 ('camera_topic', '/zed/zed_node/rgb/image_rect_color'),
-                ('max_speed', 4.0),
-                ('lookahead_distance', 0.51), # 0.8 og
-                ('hough_threshold', 30),
+                ('max_speed', 5.0),
+                ('lookahead_distance', 0.5), # 0.8 og
+                ('hough_threshold', 20),
                 ('min_line_length', 50),
                 ('max_line_gap', 30),
                 ('lane_width_tolerance', 0.2)  # 30% tolerance for lane width variation
@@ -61,6 +61,7 @@ class LanePurePursuit(Node):
             10)
         self.cmd_pub = self.create_publisher(AckermannDriveStamped, '/vesc/high_level/input/nav_0', 10)
         self.img_pub = self.create_publisher(Image, '/pred_lines', 10)
+        self.mask_pub = self.create_publisher(Image, '/mask_img', 10)
 
 
     def image_callback(self, msg):
@@ -78,6 +79,7 @@ class LanePurePursuit(Node):
                     vis_lines.append(left_line)
                 if right_line is not None:
                     vis_lines.append(right_line)
+                
 
                 # Only process if we have lane data
                 if left_line is not None or right_line is not None:
@@ -95,9 +97,11 @@ class LanePurePursuit(Node):
     def preprocess_image(self, image):
         # Convert to HSV and threshold for white lines
         hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
-        lower_white = np.array([0, 0, 200])
-        upper_white = np.array([255, 30, 255])
+        lower_white = np.array([0, 0, 220])
+        upper_white = np.array([180, 30, 255])
         mask = cv.inRange(hsv, lower_white, upper_white)
+        mask_to_img = self.bridge.cv2_to_imgmsg(mask, encoding = 'mono8')
+        self.mask_pub.publish(mask_to_img)
 
         # Apply morphological operations
         kernel = np.ones((5,5), np.uint8)
@@ -367,7 +371,8 @@ class LanePurePursuit(Node):
                                 self.max_steering_angle)
 
         # Calculate speed based on steering angle
-        speed = self.max_speed * (1 - abs(np.sin(steering_angle)))
+        #speed = self.max_speed * (1 - abs(np.sin(steering_angle)))
+        speed = self.max_speed
         self.get_logger().info(f"speed: {speed}")
         # Publish command
         cmd = AckermannDriveStamped()
@@ -412,6 +417,7 @@ class LanePurePursuit(Node):
                         init_right_x = int((y_horizon - init_br) / init_mr)
 
                         # Draw initial lane width with faint dashed line
+                        
                         cv.line(src, (init_left_x, y_horizon), (init_right_x, y_horizon), (50, 100, 50), 1, cv.LINE_AA)
 
                         # Draw expected lane width tolerance boundaries
@@ -455,6 +461,7 @@ class LanePurePursuit(Node):
                     if m_left != 0:
                         x_left_bottom = int((y_bottom - b_left) / m_left)
                         x_left_horizon = int((y_horizon - b_left) / m_left)
+                        # uncomment:
                         cv.line(src, (x_left_bottom, y_bottom), (x_left_horizon, y_horizon), (0, 255, 255), 2, cv.LINE_AA)
 
                         # Draw intersection point
@@ -466,6 +473,8 @@ class LanePurePursuit(Node):
                     if m_right != 0:
                         x_right_bottom = int((y_bottom - b_right) / m_right)
                         x_right_horizon = int((y_horizon - b_right) / m_right)
+                        
+                        # uncomment:
                         cv.line(src, (x_right_bottom, y_bottom), (x_right_horizon, y_horizon), (0, 255, 255), 2, cv.LINE_AA)
 
                         # Draw intersection point

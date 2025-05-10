@@ -47,10 +47,27 @@ class DetectorNode(Node):
         out_msg = self.bridge.cv2_to_imgmsg(out, encoding="bgr8")
         out_msg.header = img_msg.header  # Optionally preserve the timestamp and frame_id
 
-        if any(label == "traffic light" for _, label in self.predictions):
-            self.traffic.publish(img_msg)
+        #if any(label == "traffic light" for _, label in self.predictions):
+        #    self.traffic.publish(img_msg)
         # Publish the processed image
         self.publisher.publish(out_msg)
+        h, w = image.shape[:2]
+        for (x1, y1, x2, y2), label in self.predictions:
+            if label == "traffic light":
+                #self.get_logger().info("TRAFFIC LIGHT")
+                iout = np.array(image)
+                x1 = max(0, int(x1))
+                y1 = max(0, int(y1))
+                x2 = min(w, int(x2))
+                y2 = min(h,int( y1 + (y2-y1)/3))
+                iout = image[y1:y2, x1:x2]
+                t_msg = self.bridge.cv2_to_imgmsg(iout,encoding="bgr8")
+                #t_msg.header = img_msg.header
+                #t_msg = img_msg
+                self.traffic.publish(t_msg)
+                break
+
+        #self.publisher.publish(out_msg)
 
     def save_image(self, ready_to_save):
         if self.predictions:
