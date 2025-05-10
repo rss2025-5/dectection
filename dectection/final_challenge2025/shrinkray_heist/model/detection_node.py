@@ -6,7 +6,7 @@ import cv2
 
 from sensor_msgs.msg import Image
 from .detector import Detector
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Int32
 import numpy as np
 
 class DetectorNode(Node):
@@ -17,6 +17,7 @@ class DetectorNode(Node):
         self.traffic = self.create_publisher(Image, "/traffic", 10)
         self.subscriber = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.callback, 1)
         self.subscriber = self.create_subscription(Bool, "/ready_save", self.save_image, 1)
+        self.sub = self.create_subscription(Int3, '/state_count', self.state_count_cb)
         self.bridge = CvBridge()
 
         self.get_logger().info("Detector Initialized")
@@ -26,6 +27,9 @@ class DetectorNode(Node):
 
         self.predictions = None
         self.image_count = 1
+
+    def state_count_cb(self, state_int):
+        self.image_count = state_int.data
 
     def callback(self, img_msg):
         # Process image with CV Bridge
@@ -81,7 +85,6 @@ class DetectorNode(Node):
             if self.banana_detected and ready_to_save.data:
                 self.get_logger().info("Banana detected! Saving image.")
                 cv2.imwrite("detected_banana" + str(self.image_count)+ ".png", self.detected_image)
-                self.image_count+=1
 
 
 def main(args=None):

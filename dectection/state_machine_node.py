@@ -9,7 +9,7 @@ import time
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, PoseArray
 from nav_msgs.msg import Odometry
 from ackermann_msgs.msg import AckermannDriveStamped
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Int32
 from vs_msgs.msg import ConeLocationPixel
 
 class HeistState(Enum):
@@ -52,6 +52,10 @@ class StateMachine(Node):
 
         self.current_pos_msg = None
 
+        self.state_pub = self.create_publisher(Int32, "/state_count", 10)
+        self.state_count = Int32()
+        self.state_count.data = 1
+
     def init_cb(self, msg):
         if self.state != HeistState.ESCAPING:
             self.get_logger().info('START AND END POINT SETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT')
@@ -73,7 +77,7 @@ class StateMachine(Node):
             self.inter = PoseStamped()
             self.location1 = PoseStamped()
             self.location2 = PoseStamped()
-            self.inter.pose = msg.poses[0] 
+            self.inter.pose = msg.poses[0]
             self.location1.pose  = msg.poses[1]
             self.location2.pose = msg.poses[2]
             self.inter.header.frame_id  = "map"
@@ -82,7 +86,7 @@ class StateMachine(Node):
             self.end_pub.publish(self.inter)
             self.end_pub.publish(self.location1)
             self.end_pub.publish(self.location2)
-                
+
 
     def odom_callback(self, msg):
         self.current_pos = (msg.pose.pose.position.x, msg.pose.pose.position.y)
@@ -97,6 +101,12 @@ class StateMachine(Node):
             return  # no odometry yet
 
         if self.state == HeistState.NAVIGATING_TO_1:
+            self.state_count.data = 1
+            self.state_pub(self.state_count)
+
+            ready_msg = Bool()
+            ready_msg.data = True
+            self.ready_to_save.publish(ready_msg)
 
             if self.is_close(self.current_pos, self.location1.pose.position):
                 self.get_logger().info("Arrived at location 1. Pickup starting")
@@ -104,6 +114,12 @@ class StateMachine(Node):
                 self.state = HeistState.NAVIGATING_TO_2
 
         elif self.state == HeistState.NAVIGATING_TO_2:
+            self.state_count.data = 2
+            self.state_pub(self.state_count)
+
+            ready_msg = Bool()
+            ready_msg.data = True
+            self.ready_to_save.publish(ready_msg)
 
             if self.is_close(self.current_pos, self.location2.pose.position):
                 self.get_logger().info("Arrived at location 2. Pickup starting")
@@ -205,9 +221,6 @@ class StateMachine(Node):
         if not traffic_light:
             # stop car for 5 seconds and save image of banana
             start_time = time.time()
-            ready_msg = Bool()
-            ready_msg.data = True
-            self.ready_to_save.publish(ready_msg)
             while time.time() - start_time <= 5:
                 drive_msg = AckermannDriveStamped()
                 drive_msg.drive.speed = 0.0
