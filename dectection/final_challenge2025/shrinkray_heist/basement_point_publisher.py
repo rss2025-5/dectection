@@ -15,7 +15,7 @@ class BasementPointPublisher(Node):
         self.publisher = self.create_publisher(PoseArray, "/shrinkray_part", 1)
         self.subscriber = self.create_subscription(PointStamped, "/clicked_point", self.callback, 1)
 
-        self.array = []
+        self.array = [Pose(position=Point(x=-15.4, y = 11.4, z=0.0))]
 
         self.get_logger().info("Point Publisher Initialized")
 
@@ -24,7 +24,7 @@ class BasementPointPublisher(Node):
         self.get_logger().info(f"Received point: {x}, {y}")
         self.array.append(Pose(position=Point(x=x, y=y, z=0.0)))
         
-        if len(self.array) == 2:
+        if len(self.array) == 3:
             self.publish()
 
     def publish(self):

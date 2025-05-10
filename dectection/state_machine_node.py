@@ -6,7 +6,7 @@ from enum import Enum
 import math
 import time
 
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, PoseArray
 from nav_msgs.msg import Odometry
 from ackermann_msgs.msg import AckermannDriveStamped
 from std_msgs.msg import Bool
@@ -36,14 +36,14 @@ class StateMachine(Node):
         self.odom_sub = self.create_subscription(Odometry, '/pf/pose/odom', self.odom_callback, 10)
         self.init_sub = self.create_subscription(PoseWithCovarianceStamped, '/initialpose', self.init_cb, 10)
         # Subscriber to clicked points (reuse goal_pose topic as clicked input)
-        self.clicked_sub = self.create_subscription(PoseStamped, '/goal_pose', self.clicked_callback, 10)
+        self.clicked_sub = self.create_subscription(PoseArray, '/shrinkray_part', self.clicked_callback, 10)
 
         self.state = HeistState.WAITING_FOR_LOCATIONS
         self.location1 = None
         self.location2 = None
         self.start_location = None
 
-
+        self.inter = None
         self.current_pos = None
         self.rotating = True
         self.turn_stage = 1
@@ -70,12 +70,19 @@ class StateMachine(Node):
     def clicked_callback(self, msg):
         if self.state != HeistState.ESCAPING:
             self.state = HeistState.NAVIGATING_TO_1
-            if self.location1 is None:
-                self.location1 = msg
-                return
-            if self.location2 is None:
-                self.location2 = msg
-                return
+            self.inter = PoseStamped()
+            self.location1 = PoseStamped()
+            self.location2 = PoseStamped()
+            self.inter.pose = msg.poses[0] 
+            self.location1.pose  = msg.poses[1]
+            self.location2.pose = msg.poses[2]
+            self.inter.header.frame_id  = "map"
+            self.location1.header.frame_id = "map"
+            self.location2.header.frame_id  = "map"
+            self.end_pub.publish(self.inter)
+            self.end_pub.publish(self.location1)
+            self.end_pub.publish(self.location2)
+                
 
     def odom_callback(self, msg):
         self.current_pos = (msg.pose.pose.position.x, msg.pose.pose.position.y)
@@ -110,7 +117,7 @@ class StateMachine(Node):
 
                     if self.turn_stage == 1:
                         drive_msg.drive.speed = 0.5  # forward
-                        drive_msg.drive.steering_angle = 0.34  # left turn (adjustable)
+                        drive_msg.drive.steering_angle = 0.5  # left turn (adjustable)
                         self.safety_stop.publish(drive_msg)
 
                         if time.time() - self.rotate_start_time >= 2:  # forward turn duration
@@ -122,7 +129,7 @@ class StateMachine(Node):
                         drive_msg.drive.steering_angle = -0.50  # right turn
                         self.safety_stop.publish(drive_msg)
 
-                        if time.time() - self.rotate_start_time >= 1.5:  # reverse duration
+                        if time.time() - self.rotate_start_time >= 2.0:  # reverse duration
                             self.rotate_start_time = time.time()
                             self.turn_stage = 3
 
@@ -131,7 +138,7 @@ class StateMachine(Node):
                         drive_msg.drive.steering_angle = 0.50  # left turn
                         self.safety_stop.publish(drive_msg)
 
-                        if time.time() - self.rotate_start_time >= 2:  # final forward duration
+                        if time.time() - self.rotate_start_time >= 3:  # final forward duration
                             self.rotating = False
                             self.get_logger().info("3-point turn complete")
                             # tell the planner to generate a new path
@@ -140,8 +147,8 @@ class StateMachine(Node):
                             condition.data = True
                             self.gen_return.publish(condition)
                             # buffer
-                            time.sleep(3)
-
+                            t = time.time()
+                            self.stop_robot(True)
                             #   NEWWWW
                             # Get current yaw
                             current_yaw = self.get_yaw_from_quaternion(self.current_pos_msg.pose.pose.orientation)

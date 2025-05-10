@@ -129,7 +129,7 @@ class Detector:
 def demo():
     import os
     model = Detector()
-    model.set_threshold(0.5)
+    model.set_threshold(0.25)
 
     img_path = f"{os.path.dirname(__file__)}/../../media/minion.png"
 

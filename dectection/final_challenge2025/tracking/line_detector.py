@@ -19,9 +19,9 @@ class LanePurePursuit(Node):
         self.declare_parameters(namespace='',
             parameters=[
                 ('camera_topic', '/zed/zed_node/rgb/image_rect_color'),
-                ('max_speed', 4.5),
+                ('max_speed', 4.0),
                 ('lookahead_distance', 0.51), # 0.8 og
-                ('hough_threshold', 20),
+                ('hough_threshold', 30),
                 ('min_line_length', 50),
                 ('max_line_gap', 30),
                 ('lane_width_tolerance', 0.2)  # 30% tolerance for lane width variation
