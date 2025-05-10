@@ -75,7 +75,6 @@ class DetectorNode(Node):
                 black_img = self.bridge.cv2_to_imgmsg(black_img, encoding="bgr8")
 
                 self.traffic.publish(black_img)
-                self.get_logger().info('Published black image.')
 
         #self.publisher.publish(out_msg)
 
